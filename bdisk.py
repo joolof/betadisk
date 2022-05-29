@@ -152,11 +152,12 @@ def example():
         for j in range(4):
             ax1 = fig.add_subplot(ax[i,j])
             ax1.imshow(test.model[ct,], origin='lower', extent = [xlim, -xlim, -xlim, xlim],
-                            vmax=np.percentile(test.model[ct,], 99.5), cmap = 'viridis')
+                            vmax=np.percentile(test.model[ct,], 99.5), cmap = 'inferno')
             ax1.set_xticks([])
             ax1.set_yticks([])
             ax1.set_axis_off()
             ct+=1
+    plt.savefig('screenshots/pretty.png')
     plt.show()
 
 
