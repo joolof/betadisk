@@ -58,17 +58,17 @@ those should be enough (and mostly self-explanatory) to produce scattered light 
 
 ```python
 thermal = False    # False by default, need to switch it to True
-lstar = None       # To compute the temperature we need a stellar luminosity
-dpc = None         # We will also need a distance in pc
-wave = None        # And we need to provide a wavelength in microns
-dx = 0.            # Possibility to have an offset in the x direction
+lstar = None       # to compute the temperature we need a stellar luminosity
+dpc = None         # we will also need a distance in pc
+wave = None        # and we need to provide a wavelength in microns
+dx = 0.            # possibility to have an offset in the x direction
 dy = 0.            # and in the y direction
 ```
 
 For thermal images, we need to provide the luminosity because the temperature of the dust grains is estimated by inverting the following equation ([Wyatt 2008](https://ui.adsabs.harvard.edu/abs/2008ARA&A..46..339W)):
 
 ```python
-r = (278.3/T)**2 Lstar**0.5
+r = (278.3/Tdust)**2 * Lstar**0.5
 ```
 
 and `r` will be in au. Since all the distances in the code are in arcseconds we also need the distance in pc for the conversion. 
@@ -89,4 +89,8 @@ pa = -110.     # position angle of the disk, in degrees
 opang = 0.05   # opening angle of the disk
 pfunc = np.ones(nb)  # array containing the phase function
 ```
+
+### A word on the phase function
+
+The "traditional" way to deal with the phase function, either in scattered or polarized light observations, would be to use the Heynyey-Greenstein approximation, which is parametrized by a single value $g$. However, this approximation does not always work very well, and one often has to increase the complexity of the problem, for instance using a combination of two phase functions. In [Olofsson et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...640A..12O/abstract) we proposed another approach to derive the "best" phase function directly from the observations. This is a two step process in which we run a first model wthout a phase function, accounting only for the dust density distribution, and then the phase function is derived from the brightness profile of both this first model and the observations. Afterwards, a second model can be computed using the inferred phase function.
 
