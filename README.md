@@ -94,3 +94,18 @@ pfunc = np.ones(nb)  # array containing the phase function
 
 The "traditional" way to deal with the phase function, either in scattered or polarized light observations, would be to use the Heynyey-Greenstein approximation, which is parametrized by a single value $g$. However, this approximation does not always work very well, and one often has to increase the complexity of the problem, for instance using a combination of two phase functions. In [Olofsson et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...640A..12O/abstract) we proposed another approach to derive the "best" phase function directly from the observations. This is a two step process in which we run a first model wthout a phase function, accounting only for the dust density distribution, and then the phase function is derived from the brightness profile of both this first model and the observations. Afterwards, a second model can be computed using the inferred phase function.
 
+The result of this approach is that we have two arrays, one for the scattering angle, and one for the phase function. In `compute_model` if one does not pass the parameter `pfunc`, then the array is filled with `nb` 1. In the other case, the user can provide the array `pfunc` to the method so that it is used when computing the images. In both cases, the array for the scattering angle is automatatically creating based on the length of the array for the phase function.
+
+At the moment I do not plan on modifying the code to allow for HG approximations, but this may come in the future if I would need it. At the moment, you could still sample your HG approximation at dsicrete values and pass it to the method with `pfunc` but this is a bit brute-force because there will be some interpolation down the road.
+
+### A minimal working example
+
+In the `example` method you can find a minimal working example, quite similar to
+
+```python
+nx, ng = 1_000, 12
+disk = BetaDisk(nx = nx, ng = ng)
+disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05)
+```
+
+
