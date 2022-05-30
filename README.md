@@ -20,4 +20,16 @@ python3 setup.py develop
 
 The dependencies are `numpy`, `matplotlib` (though technically not necessary except for the example), and most importantly `numba` to speed things up a little. With [`numba`](https://numba.pydata.org/) you have the possibility to pre-compile parts of the code, which can significantly improve the runtime speed. In our case, since we will be launching many particles, and do very simple math operations, this is quite invaluable.
 
+Once you cloned and installed the repository, you should therefore compile some of the code by running
+
+```python
+python3 frame.py
+```
+
+and this will create a directory called 'frame.cpython-38-x86_64-linux-gnu.so' (name will vary depending on your operating system). And that's it, you should be able to succesfully run the following
+
+```python
+python3 betadisk.py
+```
+
 
