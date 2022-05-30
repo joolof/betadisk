@@ -106,6 +106,10 @@ In the `example` method you can find a minimal working example, quite similar to
 nx, ng = 1_000, 12
 disk = BetaDisk(nx = nx, ng = ng)
 disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05)
+print(np.shape(disk.model))
+# Should return something like (12, 1000, 1000)
 ```
+
+Note that I did not really notice a decrease in performance when increasing the size of the images. The position of all the particles has to be computed in any case, there is only a check towards the end to see whether there are in the field of view or not. So it should be only slightly slower if you have `nx = 200` or `nx = 1024`. This might be useful to model ALMA osbervations and want to sample your Fourier transform with high enough spatial resolution.
 
 
