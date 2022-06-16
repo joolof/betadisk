@@ -136,14 +136,14 @@ def example():
         cx = nx//2 - 0.5
     else:
         cx = nx//2
-    test = BetaDisk(nx = nx, ng = ng)
+    disk = BetaDisk(nx = nx, ng = ng)
     t0 = time.perf_counter()
-    test.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05)
+    disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05)
     print('Whole process took: {:.2f} sec'.format(time.perf_counter()-t0))
     """
     Make a pretty plot
     """
-    xlim = cx * test._pixscale
+    xlim = cx * disk._pixscale
     fig = plt.figure(figsize=(10, 10*3./4.))
     ax = plt.GridSpec(3, 4, hspace=0.0, wspace=0.0)
     ax.update(left=0.0,right=1.,top=1.,bottom=0.0,wspace=0.0,hspace=0.00)
@@ -151,14 +151,15 @@ def example():
     for i in range(3):
         for j in range(4):
             ax1 = fig.add_subplot(ax[i,j])
-            ax1.imshow(test.model[ct,], origin='lower', extent = [xlim, -xlim, -xlim, xlim],
-                            vmax=np.percentile(test.model[ct,], 99.5), cmap = 'inferno')
+            ax1.imshow(disk.model[ct,], origin='lower', extent = [xlim, -xlim, -xlim, xlim],
+                            vmax=np.percentile(disk.model[ct,], 99.5), cmap = 'inferno')
             ax1.set_xticks([])
             ax1.set_yticks([])
             ax1.set_axis_off()
             ct+=1
     plt.savefig('screenshots/pretty.png')
     plt.show()
+
 
 
 if __name__ == "__main__":

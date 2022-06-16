@@ -26,7 +26,7 @@ Once you cloned and installed the repository, you should therefore compile some 
 python3 frame.py
 ```
 
-and this will create a directory called 'frame.cpython-38-x86_64-linux-gnu.so' (name will vary depending on your operating system). And that's it, you should be able to succesfully run the following
+and this will create a directory called 'frame.cpython-38-x86_64-linux-gnu.so' (name will vary depending on your operating system). And that's it, you should be able to successfully run the following
 
 ```python
 python3 betadisk.py
@@ -92,11 +92,11 @@ pfunc = np.ones(nb)  # array containing the phase function
 
 ### A word on the phase function
 
-The "traditional" way to deal with the phase function, either in scattered or polarized light observations, would be to use the Henyein-Greenstein approximation, which is parametrized by a single value $g$. However, this approximation does not always work very well, and one often has to increase the complexity of the problem, for instance using a combination of two phase functions. In [Olofsson et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...640A..12O/abstract) we proposed another approach to derive the "best" phase function directly from the observations. This is a two step process in which we run a first model wthout a phase function, accounting only for the dust density distribution, and then the phase function is derived from the brightness profile of both this first model and the observations. Afterwards, a second model can be computed using the inferred phase function.
+The "traditional" way to deal with the phase function, either in scattered or polarized light observations, would be to use the Henyein-Greenstein approximation, which is parametrized by a single value $g$. However, this approximation does not always work very well, and one often has to increase the complexity of the problem, for instance using a combination of two phase functions. In [Olofsson et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...640A..12O/abstract) we proposed another approach to derive the "best" phase function directly from the observations. This is a two step process in which we run a first model without a phase function, accounting only for the dust density distribution, and then the phase function is derived from the brightness profile of both this first model and the observations. Afterwards, a second model can be computed using the inferred phase function.
 
-The result of this approach is that we have two arrays, one for the scattering angle, and one for the phase function. In `compute_model` if one does not pass the parameter `pfunc`, then the array is filled with `nb` 1. In the other case, the user can provide the array `pfunc` to the method so that it is used when computing the images. In both cases, the array for the scattering angle is automatatically creating based on the length of the array for the phase function.
+The result of this approach is that we have two arrays, one for the scattering angle, and one for the phase function. In `compute_model` if one does not pass the parameter `pfunc`, then the array is filled with `nb` 1. In the other case, the user can provide the array `pfunc` to the method so that it is used when computing the images. In both cases, the array for the scattering angle is automatically creating based on the length of the array for the phase function.
 
-At the moment I do not plan on modifying the code to allow for HG approximations, but this may come in the future if I would need it. At the moment, you could still sample your HG approximation at dsicrete values and pass it to the method with `pfunc` but this is a bit brute-force because there will be some interpolation down the road.
+At the moment I do not plan on modifying the code to allow for HG approximations, but this may come in the future if I would need it. At the moment, you could still sample your HG approximation at discrete values and pass it to the method with `pfunc` but this is a bit brute-force because there will be some interpolation down the road.
 
 ### A minimal working example
 
@@ -110,6 +110,8 @@ print(np.shape(disk.model))
 # Should return something like (12, 1000, 1000)
 ```
 
-Note that I did not really notice a decrease in performance when increasing the size of the images. The position of all the particles has to be computed in any case, there is only a check towards the end to see whether there are in the field of view or not. So it should be only slightly slower if you have `nx = 200` or `nx = 1024`. This might be useful to model ALMA osbervations and want to sample your Fourier transform with high enough spatial resolution.
+Note that I did not really notice a decrease in performance when increasing the size of the images. The position of all the particles has to be computed in any case, there is only a check towards the end to see whether there are in the field of view or not. So it should be only slightly slower if you have `nx = 200` or `nx = 1024`. This might be useful to model ALMA observations and want to sample your Fourier transform with high enough spatial resolution.
 
+### Acknowledgments
 
+If you were to use this code in your research, I would appreciate if you could cite [this paper (Olofsson et al. 2022)](https://arxiv.org/abs/2206.07068).
