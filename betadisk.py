@@ -1,3 +1,4 @@
+import sys
 import time
 import frame
 import numpy as np
@@ -24,6 +25,7 @@ class BetaDisk(object):
         self.model = np.zeros((self._ng, self._nx, self._nx))
         self._factors = np.zeros(self._ng)
         self._a, self._dr, self._incl, self._pa, self._opang, self._pfunc = 1., 0.02, 0., 0., 0.05, None
+        self._dpi, self._is_hg, self._ghg = False, False, 0.
         self._thermal, self._lstar, self._dpc, self._wave = thermal, lstar, dpc, wave
         if self._thermal:
             if self._lstar is None:
@@ -63,11 +65,21 @@ class BetaDisk(object):
                                                  self._dx, self._dy, len(btmp), self._nx)
         else:
             for i in range(self._ng):
+                if type(self._ghg) is np.ndarray:
+                    ghg = self._ghg[i]
+                else:
+                    ghg = self._ghg
+                if self._pfunc is not None:
+                    if len(np.shape(self._pfunc)) == 2:
+                        pfunc = self._pfunc[:, i]
+                    else:
+                        pfunc = self._pfunc
                 sel = ((self._beta >= self._bgrid[i]) & (self._beta < self._bgrid[i+1]))
                 btmp = self._beta[sel]
                 self.model[i,:,:] = frame.sphere(btmp, self._a, self._dr, self._incl, \
                                                  self._opang, self._pa, self._pixscale, self._slope,\
-                                                 self._theta, self._pfunc, len(btmp), self._nx)
+                                                 self._is_hg, ghg, self._theta, pfunc,\
+                                                 len(btmp), self._nx, self._dpi)
 
     """
     Check the parameters that are passed as kwargs
@@ -86,6 +98,16 @@ class BetaDisk(object):
             self._pa = kwargs['pa'] * np.pi / 180.
         if 'opang' in kwargs:
             self._opang = kwargs['opang']
+        if 'dpi' in kwargs:
+            self._dpi = kwargs['dpi']
+        if 'is_hg' in kwargs:
+            self._is_hg = kwargs['is_hg']
+            if 'ghg' in kwargs:
+                self._ghg = kwargs['ghg']
+                if type(self._ghg) is np.ndarray:
+                    if len(self._ghg) != self._ng:
+                        print('The array for HG should have the same size as the number of grain sizes')
+                        sys.exit(0)
         if 'pfunc' in kwargs:
             self._pfunc = kwargs['pfunc']
             self._theta = np.linspace(0., np.pi, num = np.shape(self._pfunc)[0])

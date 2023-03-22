@@ -8,7 +8,7 @@ CC = 2.9979e+14     # in microns/s
 HH = 6.6262e-27
 KK = 1.3807e-16
 # -----------------------------------------------------------
-@njit
+@njit(nogil=True)
 def get_true_anomaly(ecc, mean_anom):
     """
     Method to compute the eccentric anomaly for a given eccentricity and mean anomaly
@@ -55,7 +55,7 @@ def get_true_anomaly(ecc, mean_anom):
     else:
         return curr
 
-@njit
+@njit(nogil=True)
 def get_launch(ec):
     """
     Method to randomly pick the launching points from the parent
@@ -66,7 +66,7 @@ def get_launch(ec):
     return 2. * np.arctan2(np.sqrt(1.e0 + ec) * np.sin(nu/2.), np.sqrt(1.e0 - ec) * np.cos(nu/2.))
     # return nu
 
-@njit
+@njit(nogil=True)
 def binarysearch(arr, h, x):
     m, l = 0, 0
     while (h-l >1):
@@ -79,7 +79,7 @@ def binarysearch(arr, h, x):
             h = m
     return l
 
-@njit
+@njit(nogil=True)
 def get_xyz(a, dr, opang, ecc, beta):
     """
     Get the orbital parameters of the parent bodies
@@ -87,6 +87,8 @@ def get_xyz(a, dr, opang, ecc, beta):
     w = np.random.random() * 2. * np.pi - np.pi
     pa = np.random.random() * 2. * np.pi - np.pi
     deltai = np.random.normal(0., opang)
+    # deltai = np.random.rayleigh(scale = opang)
+    # sma = np.random.uniform(a, a+dr)
     sma = np.random.normal(a, dr)
     nu_l = get_launch(ecc)
     """
@@ -112,7 +114,7 @@ def get_xyz(a, dr, opang, ecc, beta):
     return xm, ym, zm, dist
 
 
-@njit
+@njit(nogil=True)
 @cc.export('alma', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4, i4)')
 def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, nl, nx):
     nu = CC / wave
@@ -156,9 +158,9 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
     return image
 
 
-@njit
-@cc.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, f8[:], f8[:], i4, i4)')
-def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, theta, pfunc, nl, nx):
+@njit(nogil=True)
+@cc.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], i4, i4, b1)')
+def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, nl, nx, dpi):
     np.random.seed(10)
     if nx%2 == 0:
         cx = nx //2 - 0.5
@@ -178,8 +180,13 @@ def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, theta, pfunc, nl, nx)
     for il in range(nl):
         xm, ym, zm, dist = get_xyz(a, dr, opang, ecc, beta[il])
         th = np.arccos((ym * sini - zm * cosi) / dist)
-        it = binarysearch(theta, len(theta), th)
-        hg = pfunc[it]
+        if is_hg:
+            hg = 1./(4.*np.pi) * (1. - ghg*ghg)/(1.+ghg*ghg - 2. * ghg * np.cos(th))**1.5
+            if dpi:
+                hg *= (1.-np.cos(th)**2.)/(1.+np.cos(th)**2.)
+        else:
+            it = binarysearch(theta, len(theta), th)
+            hg = pfunc[it]
         """
         Rotate along the x axis first for the inclination,
         and then rotate for the position angle
@@ -195,8 +202,9 @@ def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, theta, pfunc, nl, nx)
             It should be 1.5-slope and then -2 for the size**2,
             since s \propto 1/beta there is a 1/beta**2
             """
-            corr_fac = (beta[il])**(1.5-slope-2.)
+            corr_fac = (beta[il])**(1.5 - slope - 2.)
             corr_fac *= ((1.-beta[il])/(1.-2.*beta[il]))**(1.5)
+            # image[xn,yn] += (corr_fac * hg)
             image[xn,yn] += (corr_fac * hg/dist/dist)
     return image
 

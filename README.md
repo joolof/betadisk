@@ -51,10 +51,10 @@ pixscale = 0.01226 # size of one pixel in arcsec
 bmin = 0.001       # minimum value for beta
 bmax = 0.49        # maximum value for beta
 nb = 50            # number of bins for the phase function (see later)
-slope = 0.5        # slope for the size distribution (might not be useful to change)
+slope = 0.5        # "Correction" for the size distribution (see next paragraph)
 ```
 
-those should be enough (and mostly self-explanatory) to produce scattered light images. If you want to model ALMA observations, for thermal images you will need to provide the following parameters
+those should be enough (and mostly self-explanatory) to produce scattered light images. The `slope` parameter is not the slope of the size distribution. Normally, a slope in $dn(s) \propto s^{-3.5}ds$ should result in a distribution of $dn(\beta) \propto \beta^{3/2}d\beta$, which is a top-heavy distribution. Therefore we would draw way too many particles with large $\beta$ values, and the images for small $\beta$ would be noisy. Therefore, we instead use a power-law distribution in $1/2$ instead of $3/2$ and this is accounted for later on. If you want to model ALMA observations, for thermal images you will need to provide the following parameters
 
 ```python
 thermal = False    # False by default, need to switch it to True
