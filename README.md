@@ -111,7 +111,8 @@ In the `example` method you can find a minimal working example, quite similar to
 nx, ng = 1_000, 12
 ghg = np.linspace(0.9, 0.5, num = ng)
 disk = BetaDisk(nx = nx, ng = ng)
-disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05, is_hg = True, ghg = ghg)
+disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05, \
+        is_hg = True, ghg = ghg)
 print(np.shape(disk.model))
 # Should return something like (12, 1000, 1000)
 ```
