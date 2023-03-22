@@ -159,8 +159,8 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
 
 
 @njit(nogil=True)
-@cc.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], i4, i4, b1)')
-def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, nl, nx, dpi):
+@cc.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], f8, f8, i4, i4, b1)')
+def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, dx, dy, nl, nx, dpi):
     np.random.seed(10)
     if nx%2 == 0:
         cx = nx //2 - 0.5
@@ -195,8 +195,8 @@ def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pf
         xnew = xm * cospa - ym * sinpa
         ynew = xm * sinpa + ym * cospa
 
-        xn = int((xnew/pixscale) + cx)
-        yn = int((ynew/pixscale) + cx)
+        xn = int(((xnew + dx)/pixscale) + cx)
+        yn = int(((ynew + dy)/pixscale) + cx)
         if ((xn>=0) and (xn<=nx-1) and (yn>=0) and (yn<=nx-1)):
             """
             It should be 1.5-slope and then -2 for the size**2,

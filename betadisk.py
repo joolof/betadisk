@@ -78,7 +78,7 @@ class BetaDisk(object):
                 btmp = self._beta[sel]
                 self.model[i,:,:] = frame.sphere(btmp, self._a, self._dr, self._incl, \
                                                  self._opang, self._pa, self._pixscale, self._slope,\
-                                                 self._is_hg, ghg, self._theta, pfunc,\
+                                                 self._is_hg, ghg, self._theta, pfunc, self._dx, self._dy,\
                                                  len(btmp), self._nx, self._dpi)
 
     """

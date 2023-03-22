@@ -52,17 +52,19 @@ bmin = 0.001       # minimum value for beta
 bmax = 0.49        # maximum value for beta
 nb = 50            # number of bins for the phase function (see later)
 slope = 0.5        # "Correction" for the size distribution (see next paragraph)
+dx = 0.            # possibility to have an offset in the x direction
+dy = 0.            # and in the y direction
 ```
 
-those should be enough (and mostly self-explanatory) to produce scattered light images. The `slope` parameter is not the slope of the size distribution. Normally, a slope in $dn(s) \propto s^{-3.5}ds$ should result in a distribution of $dn(\beta) \propto \beta^{3/2}d\beta$, which is a top-heavy distribution. Therefore we would draw way too many particles with large $\beta$ values, and the images for small $\beta$ would be noisy. Therefore, we instead use a power-law distribution in $1/2$ instead of $3/2$ and this is accounted for later on. If you want to model ALMA observations, for thermal images you will need to provide the following parameters
+those should be enough (and mostly self-explanatory) to produce scattered light images. The `slope` parameter is not the slope of the size distribution. Normally, a slope in $dn(s) \propto s^{-3.5}ds$ should result in a distribution of $dn(\beta) \propto \beta^{3/2}d\beta$, which is a top-heavy distribution. Therefore we would draw way too many particles with large $\beta$ values, and the images for small $\beta$ would be noisy. Therefore, we instead use a power-law distribution in $1/2$ instead of $3/2$ and this is accounted for later on. 
+
+If you want to model ALMA observations, for thermal images you will need to provide the following parameters
 
 ```python
 thermal = False    # False by default, need to switch it to True
 lstar = None       # to compute the temperature we need a stellar luminosity
 dpc = None         # we will also need a distance in pc
 wave = None        # and we need to provide a wavelength in microns
-dx = 0.            # possibility to have an offset in the x direction
-dy = 0.            # and in the y direction
 ```
 
 For thermal images, we need to provide the luminosity because the temperature of the dust grains is estimated by inverting the following equation ([Wyatt 2008](https://ui.adsabs.harvard.edu/abs/2008ARA&A..46..339W)):
@@ -82,21 +84,24 @@ disk.compute_model(a = 1.5)
 which the following parameters
 
 ```python
-a = 1.5        # the reference radius of the disk, in arcsec
-dr = 0.25      # the standard deviation for the width of the main belt (normal profile)
-incl = 45.     # inclination of the disk, in degrees
-pa = -110.     # position angle of the disk, in degrees
-opang = 0.05   # opening angle of the disk
+a = 1.5              # the reference radius of the disk, in arcsec
+dr = 0.25            # the standard deviation for the width of the main belt (normal profile)
+incl = 45.           # inclination of the disk, in degrees
+pa = -110.           # position angle of the disk, in degrees
+opang = 0.05         # opening angle of the disk
 pfunc = np.ones(nb)  # array containing the phase function
+is_hg = True         # should we use the HG approximation
+ghg = 0.             # [float or np.array] value for the asymmetry parameter for the HG phase function
+dpi = False          # if is_hg is True, we can also model polarimetric observations
 ```
 
 ### A word on the phase function
 
 The "traditional" way to deal with the phase function, either in scattered or polarized light observations, would be to use the Henyein-Greenstein approximation, which is parametrized by a single value $g$. However, this approximation does not always work very well, and one often has to increase the complexity of the problem, for instance using a combination of two phase functions. In [Olofsson et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...640A..12O/abstract) we proposed another approach to derive the "best" phase function directly from the observations. This is a two step process in which we run a first model without a phase function, accounting only for the dust density distribution, and then the phase function is derived from the brightness profile of both this first model and the observations. Afterwards, a second model can be computed using the inferred phase function.
 
-The result of this approach is that we have two arrays, one for the scattering angle, and one for the phase function. In `compute_model` if one does not pass the parameter `pfunc`, then the array is filled with `nb` 1. In the other case, the user can provide the array `pfunc` to the method so that it is used when computing the images. In both cases, the array for the scattering angle is automatically creating based on the length of the array for the phase function.
+The result of this approach is that we have two arrays, one for the scattering angle, and one for the phase function. In `compute_model` if one does not pass the parameter `pfunc`, then the array is filled with `nb` 1. In the other case, the user can provide the array `pfunc` to the method so that it is used when computing the images. In both cases, the array for the scattering angle is automatically creating based on the length of the array for the phase function, and the scattering angle is between $[0, \pi]$.
 
-At the moment I do not plan on modifying the code to allow for HG approximations, but this may come in the future if I would need it. At the moment, you could still sample your HG approximation at discrete values and pass it to the method with `pfunc` but this is a bit brute-force because there will be some interpolation down the road.
+There is also the possibility to use the HG approximation by setting the boolean `is_hg` to `True` and providing a value for `ghg`. The latter value can be a `float` or a `np.array` with a length equal to `ng`. If only a single value is provided, all the different `ng` images will have the same phase function, but if an array is passed, then all the different images will use different phase functions (see the example below). If `is_hg` is `True` you can also set `dpi` to `True` to include the Rayleigh scattering term to mimic polarimetric observations.
 
 ### A minimal working example
 
@@ -104,8 +109,9 @@ In the `example` method you can find a minimal working example, quite similar to
 
 ```python
 nx, ng = 1_000, 12
+ghg = np.linspace(0.9, 0.5, num = ng)
 disk = BetaDisk(nx = nx, ng = ng)
-disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05)
+disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05, is_hg = True, ghg = ghg)
 print(np.shape(disk.model))
 # Should return something like (12, 1000, 1000)
 ```
