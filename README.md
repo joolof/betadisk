@@ -44,16 +44,16 @@ disk = BetaDisk()
 which has the following parameters (all optional)
 
 ```python
-nx = 300           # number of pixels for the images
-nl = 10_000_000    # number of particles to be launched
-ng = 10            # number of grain size intervals
-pixscale = 0.01226 # size of one pixel in arcsec
-bmin = 0.001       # minimum value for beta
-bmax = 0.49        # maximum value for beta
-nb = 50            # number of bins for the phase function (see later)
-slope = 0.5        # "Correction" for the size distribution (see next paragraph)
-dx = 0.            # possibility to have an offset in the x direction
-dy = 0.            # and in the y direction
+nx = 300           # [int] number of pixels for the images
+nl = 10_000_000    # [int] number of particles to be launched
+ng = 10            # [int] number of grain size intervals
+pixscale = 0.01226 # [float] size of one pixel in arcsec
+bmin = 0.001       # [float] minimum value for beta
+bmax = 0.49        # [float] maximum value for beta
+nb = 50            # [int] number of bins for the phase function (see later)
+slope = 0.5        # [float] "Correction" for the size distribution (see next paragraph)
+dx = 0.            # [float] possibility to have an offset in the x direction
+dy = 0.            # [float] and in the y direction
 ```
 
 those should be enough (and mostly self-explanatory) to produce scattered light images. The `slope` parameter is not the slope of the size distribution. Normally, a slope in $dn(s) \propto s^{-3.5}ds$ should result in a distribution of $dn(\beta) \propto \beta^{3/2}d\beta$, which is a top-heavy distribution. Therefore we would draw way too many particles with large $\beta$ values, and the images for small $\beta$ would be noisy. Therefore, we instead use a power-law distribution in $1/2$ instead of $3/2$ and this is accounted for later on. 
@@ -61,10 +61,10 @@ those should be enough (and mostly self-explanatory) to produce scattered light 
 If you want to model ALMA observations, for thermal images you will need to provide the following parameters
 
 ```python
-thermal = False    # False by default, need to switch it to True
-lstar = None       # to compute the temperature we need a stellar luminosity
-dpc = None         # we will also need a distance in pc
-wave = None        # and we need to provide a wavelength in microns
+thermal = False    # [boolean] False by default, need to switch it to True
+lstar = None       # [float] to compute the temperature we need a stellar luminosity
+dpc = None         # [float] we will also need a distance in pc
+wave = None        # [float] and we need to provide a wavelength in microns
 ```
 
 For thermal images, we need to provide the luminosity because the temperature of the dust grains is estimated by inverting the following equation ([Wyatt 2008](https://ui.adsabs.harvard.edu/abs/2008ARA&A..46..339W)):
@@ -84,15 +84,15 @@ disk.compute_model(a = 1.5)
 which the following parameters
 
 ```python
-a = 1.5              # the reference radius of the disk, in arcsec
-dr = 0.25            # the standard deviation for the width of the main belt (normal profile)
-incl = 45.           # inclination of the disk, in degrees
-pa = -110.           # position angle of the disk, in degrees
-opang = 0.05         # opening angle of the disk
-pfunc = np.ones(nb)  # array containing the phase function
-is_hg = True         # should we use the HG approximation
+a = 1.5              # [float] the reference radius of the disk, in arcsec
+dr = 0.25            # [float] the standard deviation for the width of the main belt (normal profile)
+incl = 45.           # [float] inclination of the disk, in degrees
+pa = -110.           # [float] position angle of the disk, in degrees
+opang = 0.05         # [float] opening angle of the disk
+pfunc = np.ones(nb)  # [np.array] array containing the phase function
+is_hg = True         # [boolean] should we use the HG approximation
 ghg = 0.             # [float or np.array] value for the asymmetry parameter for the HG phase function
-dpi = False          # if is_hg is True, we can also model polarimetric observations
+dpi = False          # [boolean] if is_hg is True, we can also model polarimetric observations
 ```
 
 ### A word on the phase function
@@ -103,6 +103,8 @@ The result of this approach is that we have two arrays, one for the scattering a
 
 There is also the possibility to use the HG approximation by setting the boolean `is_hg` to `True` and providing a value for `ghg`. The latter value can be a `float` or a `np.array` with a length equal to `ng`. If only a single value is provided, all the different `ng` images will have the same phase function, but if an array is passed, then all the different images will use different phase functions (see the example below). If `is_hg` is `True` you can also set `dpi` to `True` to include the Rayleigh scattering term to mimic polarimetric observations.
 
+As a last remark on the phase function, if `is_hg` is set to `True`, this takes over the values passed in `pfunc`, therefore if you want to use the first approach, you have to make sure that `is_hg = False` (the default value).
+
 ### A minimal working example
 
 In the `example` method you can find a minimal working example, quite similar to
@@ -112,7 +114,7 @@ nx, ng = 1_000, 12
 ghg = np.linspace(0.9, 0.5, num = ng)
 disk = BetaDisk(nx = nx, ng = ng)
 disk.compute_model(a = 1.5, dr = 0.030, incl = 40.0, pa = -120.0, opang = 0.05, \
-        is_hg = True, ghg = ghg)
+                is_hg = True, ghg = ghg)
 print(np.shape(disk.model))
 # Should return something like (12, 1000, 1000)
 ```
