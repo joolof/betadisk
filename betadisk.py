@@ -5,35 +5,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 # -----------------------------------------------------------
 np.seterr(over='ignore', divide='ignore')
+CC = 2.9979e+14     # in microns/s 
 # -----------------------------------------------------------
 
 class BetaDisk(object):
     """
     docstring for BetaDisk
     """
-    def __init__(self, nx = 300, nl = 10_000_000, nb = 50, ng = 10, pixscale = 0.01226, bmax = 0.49, bmin = 0.001, \
-                 slope = 0.5, thermal = False, lstar = None, dpc = None, wave = None, dx = 0., dy = 0.):
+    def __init__(self, nx = 300, nl = 10_000_000, nb = 50, ng = 10, pixscale = 0.01226, bmax = 0.49, \
+            bmin = 0.001, slope = 0.5, thermal = False, lstar = None, dpc = None, owave = None, \
+            nwav = 100, dx = 0., dy = 0.):
         """
         description
         """
-        self._nx, self._nl, self._nb, self._ng = nx, nl, nb, ng
+        self._nx, self._nl, self._nb, self._ng, self._nwav = nx, nl, nb, ng, nwav
         self._pixscale = pixscale
         self._slope = slope
         self._dx, self._dy = dx, dy
         self._beta = self._get_size(bmin, bmax)
         self._bgrid = np.linspace(bmin, bmax, num = ng+1)
         self.model = np.zeros((self._ng, self._nx, self._nx))
-        self._factors = np.zeros(self._ng)
         self._a, self._dr, self._incl, self._pa, self._opang, self._pfunc = 1., 0.02, 0., 0., 0.05, None
         self._dpi, self._is_hg, self._ghg = False, False, 0.
-        self._thermal, self._lstar, self._dpc, self._wave = thermal, lstar, dpc, wave
-        if self._thermal:
-            if self._lstar is None:
-                raise ValueError('You need to provide a luminosity for thermal images')
-            if self._dpc is None:
-                raise ValueError('You need to provide a distance in pc for thermal images')
-            if self._wave is None:
-                raise ValueError('You need to provide a wavelength in microns for thermal images')
+        self._thermal, self._lstar, self._dpc, self._owave = thermal, lstar, dpc, owave
+        self.wave = np.geomspace(0.1, 2000., num = self._nwav)
+        self.sed = np.zeros((self._nwav, self._ng))
 
     def _get_size(self, smin, smax):
         """
@@ -43,6 +39,21 @@ class BetaDisk(object):
         np.random.seed(10)
         slope = self._slope + 1.
         return (((smax**slope)-(smin**slope)) * np.random.random(size=self._nl) + smin**slope)**(1./slope)
+
+    def compute_sed(self, **kwargs):
+        """
+        Compute a model
+        """
+        self._check_parameters(kwargs)
+        if self._lstar is None:
+            raise ValueError('You need to provide a luminosity for the SED')
+        if self._dpc is None:
+            raise ValueError('You need to provide a distance in pc for the SED')
+        for i in range(self._ng):
+            sel = ((self._beta >= self._bgrid[i]) & (self._beta < self._bgrid[i+1]))
+            btmp = self._beta[sel]
+            self.sed[:,i] = frame.sed(btmp, self._a, self._dr, self._opang, self._slope,\
+                                             self._dpc, self._lstar, self.wave, len(btmp))
 
     def compute_model(self, **kwargs):
         """
@@ -56,12 +67,18 @@ class BetaDisk(object):
         Compute the model
         """
         if self._thermal:
+            if self._lstar is None:
+                raise ValueError('You need to provide a luminosity for thermal images')
+            if self._dpc is None:
+                raise ValueError('You need to provide a distance in pc for thermal images')
+            if self._owave is None:
+                raise ValueError('You need to provide a wavelength in microns for thermal images')
             for i in range(self._ng):
                 sel = ((self._beta >= self._bgrid[i]) & (self._beta < self._bgrid[i+1]))
                 btmp = self._beta[sel]
                 self.model[i,:,:] = frame.alma(btmp, self._a, self._dr, self._incl, \
                                                  self._opang, self._pa, self._pixscale, self._slope,\
-                                                 self._dpc, self._lstar, self._wave, \
+                                                 self._dpc, self._lstar, self._owave, \
                                                  self._dx, self._dy, len(btmp), self._nx)
         else:
             for i in range(self._ng):
@@ -152,7 +169,7 @@ class BetaDisk(object):
     def pa(self, pa):
         self._pa = pa * np.pi/180.
 
-def example():
+def example_image():
     nx, ng = 1_000, 12
     if nx%2 ==0:
         cx = nx//2 - 0.5
@@ -182,9 +199,34 @@ def example():
     plt.savefig('screenshots/pretty.png')
     plt.show()
 
+def example_sed():
+    ng = 12
+    disk = BetaDisk(ng = ng, lstar = 2.5, dpc = 100.)
+    t0 = time.perf_counter()
+    disk.compute_sed(a = 0.5, dr = 0.030, opang = 0.05)
+    print('Whole process took: {:.2f} sec'.format(time.perf_counter()-t0))
+    sedisk = np.sum(disk.sed, axis = 1) * CC/disk.wave
+    index = np.log10(sedisk[90]/sedisk[80])/np.log10(disk.wave[90]/disk.wave[80])
+    print('Mm index between {:.2f} and {:.2f} is: {:.2f}'.format(disk.wave[80], disk.wave[90], index))
+    """
+    Make a pretty plot
+    """
+    fig = plt.figure(figsize=(7,6))
+    ax1 = fig.add_axes([0.16, 0.14, 0.8, 0.79])
+    ax1.set_xscale("log", nonpositive='clip')
+    ax1.set_yscale("log", nonpositive='clip')
+    for i in range(ng):
+        ax1.plot(disk.wave, disk.sed[:,i] * CC/disk.wave, lw = 1)
+    ax1.plot(disk.wave, sedisk, 'k', lw = 3)
+    ax1.set_xlim(0.1, 2000.)
+    ax1.set_xlabel('$\lambda$ [$\mu$m]')
+    ax1.set_ylabel('$\\nu F_{\\nu}$ [erg/s/cm/cm]')
+    plt.show()
+
 
 
 if __name__ == "__main__":
-    example()
+    # example_image()
+    example_sed()
 
 

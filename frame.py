@@ -1,8 +1,8 @@
 import numpy as np
 from numba import njit
-from numba.pycc import CC
+from numba.pycc import CC as compiler
 # -----------------------------------------------------------
-cc = CC('frame')
+ccompile = compiler('frame')
 # -----------------------------------------------------------
 CC = 2.9979e+14     # in microns/s 
 HH = 6.6262e-27
@@ -115,7 +115,29 @@ def get_xyz(a, dr, opang, ecc, beta):
 
 
 @njit(nogil=True)
-@cc.export('alma', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4, i4)')
+@ccompile.export('sed', 'f8[:](f8[:], f8, f8, f8, f8, f8, f8, f8[:], i4)')
+def sed(beta, a, dr, opang, slope, dpc, lstar, wave, nl):
+    nu = CC / wave
+    bterm = 2. * HH * nu * nu * nu / (CC * CC)
+    expcst = nu * HH / KK
+    np.random.seed(10)
+    ecc = 0.               # This only works for circular disks for now
+    sedist = np.zeros(len(wave))
+    """
+    Here we go
+    """
+    for il in range(nl):
+        xm, ym, zm, dist = get_xyz(a, dr, opang, ecc, beta[il])
+        btemp = 278.3 / np.sqrt(dist*dpc) * lstar**0.25
+        expterm = np.exp(expcst / btemp)
+        bplanck = bterm / (expterm-1.0) # should be in erg/s/cm/cm/Hz
+        corr_fac = (beta[il]/0.49)**(1.5-slope-2.)
+        corr_fac *= ((1.-beta[il])/(1.-2.*beta[il]))**(1.5)
+        sedist += (bplanck * corr_fac)
+    return sedist
+
+@njit(nogil=True)
+@ccompile.export('alma', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4, i4)')
 def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, nl, nx):
     nu = CC / wave
     bterm = 2. * HH * nu * nu * nu / (CC * CC)
@@ -125,7 +147,6 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
         cx = nx //2 - 0.5
     else:
         cx = nx //2
-    # cx = nx//2 + 8.
     ecc = 0.               # This only works for circular disks for now
     dpa = -(dpa+np.pi)
     image = np.zeros((nx, nx))
@@ -140,7 +161,7 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
         xm, ym, zm, dist = get_xyz(a, dr, opang, ecc, beta[il])
         btemp = 278.3 / np.sqrt(dist*dpc) * lstar**0.25
         expterm = np.exp(expcst / btemp)
-        bplanck = bterm / (expterm-1.0)
+        bplanck = bterm / (expterm-1.0) # the units don't matter since this is at one wavelength
         """
         Rotate along the x axis first for the inclination,
         and then rotate for the position angle
@@ -159,7 +180,7 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
 
 
 @njit(nogil=True)
-@cc.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], f8, f8, i4, i4, b1)')
+@ccompile.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], f8, f8, i4, i4, b1)')
 def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, dx, dy, nl, nx, dpi):
     np.random.seed(10)
     if nx%2 == 0:
@@ -209,6 +230,6 @@ def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pf
     return image
 
 if __name__ == "__main__":
-    cc.compile()
+    ccompile.compile()
 
 
