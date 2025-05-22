@@ -80,21 +80,19 @@ def binarysearch(arr, h, x):
     return l
 
 @njit(nogil=True)
-def get_xyz(a, dr, opang, ecc, beta):
+def get_xyz(a, opang, ecc, beta):
     """
     Get the orbital parameters of the parent bodies
     """
     w = np.random.random() * 2. * np.pi - np.pi
     pa = np.random.random() * 2. * np.pi - np.pi
     deltai = np.random.normal(0., opang)
-    # deltai = np.random.rayleigh(scale = opang)
-    # sma = np.random.uniform(a, a+dr)
-    sma = np.random.normal(a, dr)
+    # sma = np.random.normal(a, dr)
     nu_l = get_launch(ecc)
     """
     Get the updated orbital parameters
     """
-    an = sma * (1.e0 - beta) / (1.e0 - 2. * beta*(1.0 + ecc * np.cos(nu_l))/(1.0 - ecc * ecc))
+    an = a * (1.e0 - beta) / (1.e0 - 2. * beta*(1.0 + ecc * np.cos(nu_l))/(1.0 - ecc * ecc))
     en = 1. / (1.0 - beta) * np.sqrt(ecc * ecc + 2.0 * beta * ecc * np.cos(nu_l) + beta * beta)
     wn = np.arctan2(beta * np.sin(nu_l), (beta * np.cos(nu_l) + ecc)) + w
     """
@@ -115,8 +113,8 @@ def get_xyz(a, dr, opang, ecc, beta):
 
 
 @njit(nogil=True)
-@ccompile.export('sed', 'f8[:](f8[:], f8, f8, f8, f8, f8, f8, f8[:], i4)')
-def sed(beta, a, dr, opang, slope, dpc, lstar, wave, nl):
+@ccompile.export('sed', 'f8[:](f8[:], f8[:], f8, f8, f8, f8, f8[:], i4)')
+def sed(beta, a, opang, slope, dpc, lstar, wave, nl):
     nu = CC / wave
     bterm = 2. * HH * nu * nu * nu / (CC * CC)
     expcst = nu * HH / KK
@@ -127,7 +125,7 @@ def sed(beta, a, dr, opang, slope, dpc, lstar, wave, nl):
     Here we go
     """
     for il in range(nl):
-        xm, ym, zm, dist = get_xyz(a, dr, opang, ecc, beta[il])
+        _, _, _, dist = get_xyz(a[il], opang, ecc, beta[il])
         btemp = 278.3 / np.sqrt(dist*dpc) * lstar**0.25
         expterm = np.exp(expcst / btemp)
         bplanck = bterm / (expterm-1.0) # should be in erg/s/cm/cm/Hz
@@ -137,8 +135,8 @@ def sed(beta, a, dr, opang, slope, dpc, lstar, wave, nl):
     return sedist
 
 @njit(nogil=True)
-@ccompile.export('alma', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4, i4)')
-def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, nl, nx):
+@ccompile.export('alma', 'f8[:,:](f8[:], f8[:], f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4, i4)')
+def alma(beta, a, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, nl, nx):
     nu = CC / wave
     bterm = 2. * HH * nu * nu * nu / (CC * CC)
     expcst = nu * HH / KK
@@ -158,7 +156,7 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
     Here we go
     """
     for il in range(nl):
-        xm, ym, zm, dist = get_xyz(a, dr, opang, ecc, beta[il])
+        xm, ym, zm, dist = get_xyz(a[il], opang, ecc, beta[il])
         btemp = 278.3 / np.sqrt(dist*dpc) * lstar**0.25
         expterm = np.exp(expcst / btemp)
         bplanck = bterm / (expterm-1.0) # the units don't matter since this is at one wavelength
@@ -170,8 +168,8 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
         xn = xm * cospa - ym * sinpa
         yn = xm * sinpa + ym * cospa
 
-        xn = int((xn + dx)/pixscale + cx)
-        yn = int((yn + dy)/pixscale + cx)
+        xn = int((xn + dy)/pixscale + cx) # I put dy so that this would be in Declination
+        yn = int((yn + dx)/pixscale + cx) # I put dx so that this would be in RA. And I'm using -dx so that it goes in the other direction
         if ((xn>=0) and (xn<=nx-1) and (yn>=0) and (yn<=nx-1)):
             corr_fac = (beta[il]/0.49)**(1.5-slope-2.)
             corr_fac *= ((1.-beta[il])/(1.-2.*beta[il]))**(1.5)
@@ -180,8 +178,8 @@ def alma(beta, a, dr, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, d
 
 
 @njit(nogil=True)
-@ccompile.export('sphere', 'f8[:,:](f8[:], f8, f8, f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], f8, f8, i4, i4, b1)')
-def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, dx, dy, nl, nx, dpi):
+@ccompile.export('sphere', 'f8[:,:](f8[:], f8[:], f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], f8, f8, i4, i4, b1)')
+def sphere(beta, a, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, dx, dy, nl, nx, dpi):
     np.random.seed(10)
     if nx%2 == 0:
         cx = nx //2 - 0.5
@@ -199,7 +197,7 @@ def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pf
     nl particules that will be launched
     """
     for il in range(nl):
-        xm, ym, zm, dist = get_xyz(a, dr, opang, ecc, beta[il])
+        xm, ym, zm, dist = get_xyz(a[il], opang, ecc, beta[il])
         th = np.arccos((ym * sini - zm * cosi) / dist)
         if is_hg:
             hg = 1./(4.*np.pi) * (1. - ghg*ghg)/(1.+ghg*ghg - 2. * ghg * np.cos(th))**1.5
@@ -213,15 +211,15 @@ def sphere(beta, a, dr, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pf
         and then rotate for the position angle
         """
         ym = ym * cosi - zm * sini
-        xnew = xm * cospa - ym * sinpa
-        ynew = xm * sinpa + ym * cospa
+        xn = xm * cospa - ym * sinpa
+        yn = xm * sinpa + ym * cospa
 
-        xn = int(((xnew + dx)/pixscale) + cx)
-        yn = int(((ynew + dy)/pixscale) + cx)
+        xn = int((xn + dy)/pixscale + cx) # I put dy so that this would be in Declination
+        yn = int((yn - dx)/pixscale + cx) # I put dx so that this would be in RA. And this is -dx so that it goes in the other direction
         if ((xn>=0) and (xn<=nx-1) and (yn>=0) and (yn<=nx-1)):
             """
             It should be 1.5-slope and then -2 for the size**2,
-            since s \propto 1/beta there is a 1/beta**2
+            since s propto 1/beta there is a 1/beta**2
             """
             corr_fac = (beta[il])**(1.5 - slope - 2.)
             corr_fac *= ((1.-beta[il])/(1.-2.*beta[il]))**(1.5)
