@@ -141,10 +141,7 @@ def alma(beta, a, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, n
     bterm = 2. * HH * nu * nu * nu / (CC * CC)
     expcst = nu * HH / KK
     np.random.seed(10)
-    if nx%2 == 0:
-        cx = nx //2 - 0.5
-    else:
-        cx = nx //2
+    cx = nx / 2.
     ecc = 0.               # This only works for circular disks for now
     dpa = -(dpa+np.pi)
     image = np.zeros((nx, nx))
@@ -168,8 +165,10 @@ def alma(beta, a, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, n
         xn = xm * cospa - ym * sinpa
         yn = xm * sinpa + ym * cospa
 
-        xn = int((xn + dy)/pixscale + cx) # I put dy so that this would be in Declination
-        yn = int((yn + dx)/pixscale + cx) # I put dx so that this would be in RA. And I'm using -dx so that it goes in the other direction
+        xn = int(round((xn + dy)/pixscale + cx - 0.5)) # I put dy so that this would be in Declination
+        yn = int(round((yn + dx)/pixscale + cx - 0.5)) # I put dx so that this would be in RA. And I'm using -dx so that it goes in the other direction
+        # xn = int((xn + dy)/pixscale + cx)
+        # yn = int((yn + dx)/pixscale + cx)
         if ((xn>=0) and (xn<=nx-1) and (yn>=0) and (yn<=nx-1)):
             corr_fac = (beta[il]/0.49)**(1.5-slope-2.)
             corr_fac *= ((1.-beta[il])/(1.-2.*beta[il]))**(1.5)
@@ -181,10 +180,7 @@ def alma(beta, a, incl, opang, dpa, pixscale, slope, dpc, lstar, wave, dx, dy, n
 @ccompile.export('sphere', 'f8[:,:](f8[:], f8[:], f8, f8, f8, f8, f8, b1, f8, f8[:], f8[:], f8, f8, i4, i4, b1)')
 def sphere(beta, a, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc, dx, dy, nl, nx, dpi):
     np.random.seed(10)
-    if nx%2 == 0:
-        cx = nx //2 - 0.5
-    else:
-        cx = nx //2
+    cx = nx / 2.
     ecc = 0.               # This only works for circular disks for now
     dpa = -(dpa+np.pi)
     image = np.zeros((nx, nx))
@@ -214,8 +210,10 @@ def sphere(beta, a, incl, opang, dpa, pixscale, slope, is_hg, ghg, theta, pfunc,
         xn = xm * cospa - ym * sinpa
         yn = xm * sinpa + ym * cospa
 
-        xn = int((xn + dy)/pixscale + cx) # I put dy so that this would be in Declination
-        yn = int((yn - dx)/pixscale + cx) # I put dx so that this would be in RA. And this is -dx so that it goes in the other direction
+        xn = int(round((xn + dy)/pixscale + cx - 0.5)) # I put dy so that this would be in Declination
+        yn = int(round((yn + dx)/pixscale + cx - 0.5)) # I put dx so that this would be in RA. And I'm using -dx so that it goes in the other direction
+        # xn = int((xn + dy)/pixscale + cx) # I put dy so that this would be in Declination
+        # yn = int((yn - dx)/pixscale + cx) # I put dx so that this would be in RA. And this is -dx so that it goes in the other direction
         if ((xn>=0) and (xn<=nx-1) and (yn>=0) and (yn<=nx-1)):
             """
             It should be 1.5-slope and then -2 for the size**2,
